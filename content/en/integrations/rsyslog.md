@@ -72,7 +72,6 @@ Configure Rsyslog to gather logs from your host, containers, & services.
           action(type="omfwd" protocol="tcp" target="intake.logs.datadoghq.com" port="10516" template="DatadogFormat" StreamDriver="gtls" StreamDriverMode="1" StreamDriverAuthMode="x509/name" StreamDriverPermittedPeers="*.logs.datadoghq.com" )
         }
         ```
-
 {{ /site-region}}
 
 {{< site-region region="eu" >}}
@@ -109,7 +108,6 @@ Configure Rsyslog to gather logs from your host, containers, & services.
           action(type="omfwd" protocol="tcp" target="tcp-intake.logs.datadoghq.eu" port="443" template="DatadogFormat"           StreamDriver="gtls" StreamDriverMode="1" StreamDriverAuthMode="x509/name" StreamDriverPermittedPeers="*.logs.datadoghq.eu" )
         }
         ```
-
 {{ /site-region}}
 
 1. Restart Rsyslog and your new logs are forwarded directly to your Datadog account.
