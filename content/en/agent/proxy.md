@@ -270,6 +270,14 @@ frontend network_devices_metadata_frontend
     option tcplog
     default_backend datadog-network-devices-metadata
 
+# This declares the endpoint where your Agents connects for
+# sending Network Devices SNMP Traps data (e.g the value of "network_devices.snmp_traps.forwarder.dd_url")
+frontend network_devices_metadata_frontend
+    bind *:3842
+    mode http
+    option tcplog
+    default_backend datadog-network-devices-snmp-traps
+
 # This declares the endpoint where your Agents connect for
 # sending Instrumentations Telemetry data (e.g. the value of "apm_config.telemetry.dd_url")
 frontend instrumentation_telemetry_data_frontend
@@ -277,6 +285,14 @@ frontend instrumentation_telemetry_data_frontend
     mode tcp
     option tcplog
     default_backend datadog-instrumentations-telemetry
+
+# This declares the endpoint where your Agents connects for
+# sending Network Devices Netflow data (e.g the value of "network_devices.netflow.forwarder.dd_url")
+frontend network_devices_metadata_frontend
+    bind *:3844
+    mode http
+    option tcplog
+    default_backend datadog-network-devices-ndmflow
 
 # This is the Datadog server. In effect any TCP request coming
 # to the forwarder frontends defined above are proxied to
@@ -359,6 +375,23 @@ backend datadog-network-devices-metadata
     # Uncomment the following configuration for older HAProxy versions
     # server mothership ndm-intake.{{< region-param key="dd_site" >}}:443 check port 443 ssl verify none
 
+backend datadog-network-devices-snmp-traps
+    balance roundrobin
+    mode http
+    # The following configuration is for HAProxy 1.8 and newer
+    server-template mothership 5 snmp-traps-intake.{{< region-param key="dd_site" >}}:443  check port 443 ssl verify none check resolvers my-dns init-addr none resolve-prefer ipv4
+    # Uncomment the following configuration for older HAProxy versions
+    # server mothership snmp-traps-intake.{{< region-param key="dd_site" >}}:443 check port 443 ssl verify none
+
+backend datadog-network-devices-ndmflow
+    balance roundrobin
+    mode http
+    # The following configuration is for HAProxy 1.8 and newer
+    server-template mothership 5 ndmflow-intake.{{< region-param key="dd_site" >}}:443  check port 443 ssl verify none check resolvers my-dns init-addr none resolve-prefer ipv4
+    # Uncomment the following configuration for older HAProxy versions
+    # server mothership ndmflow-intake.{{< region-param key="dd_site" >}}:443 check port 443 ssl verify none
+
+
 backend datadog-instrumentations-telemetry
     balance roundrobin
     mode tcp
@@ -418,6 +451,12 @@ database_monitoring:
 network_devices:
     metadata:
         dd_url: haproxy.example.com:3841
+    snmp_traps:
+        forwarder:
+            dd_url: haproxy.example.com:3842
+    netflow:
+        forwarder:
+            dd_url: haproxy.example.com:3844
 ```
 
 Then edit the `datadog.yaml` Agent configuration file and set `skip_ssl_validation` to `true`. This is needed to make the Agent ignore the discrepancy between the hostname on the SSL certificate ({{< region-param key="dd_full_site" code="true" >}}) and your HAProxy hostname:
@@ -555,9 +594,19 @@ stream {
         proxy_pass ndm-intake.{{< region-param key="dd_site" >}}:443;
     }
     server {
+        listen 3842; #listen for network devices metadata
+        proxy_ssl on;
+        proxy_pass snmp-traps-intake.{{< region-param key="dd_site" >}}:443;
+    }
+    server {
         listen 3843; #listen for instrumentations telemetry data
         proxy_ssl on;
         proxy_pass instrumentation-telemetry-intake.{{< region-param key="dd_site" >}}:443;
+    }
+    server {
+        listen 3844; #listen for network devices metadata
+        proxy_ssl on;
+        proxy_pass ndmflow-intake.{{< region-param key="dd_site" >}}:443;
     }
 }
 ```
@@ -597,6 +646,12 @@ database_monitoring:
 network_devices:
     metadata:
         dd_url: nginx.example.com:3841
+    snmp_traps:
+        forwarder:
+            dd_url: nginx.example.com:3842
+    netflow:
+        forwarder:
+            dd_url: nginx.example.com:3844
 ```
 
 When sending logs over TCP, see <a href="/agent/logs/proxy">TCP Proxy for Logs</a>.
